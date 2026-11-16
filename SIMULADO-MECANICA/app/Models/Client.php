@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Contracts\Encryption\DecryptException;
 
 class Client extends Model
 {
@@ -19,11 +21,25 @@ class Client extends Model
         'email',
     ];
 
-    protected function casts(): array
+    public function getCpfAttribute(?string $value): ?string
     {
-        return [
-            'cpf' => 'encrypted',
-        ];
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        try {
+            return Crypt::decryptString($value);
+        } catch (DecryptException) {
+            // Exibe registros antigos que foram gravados sem criptografia.
+            return $value;
+        }
+    }
+
+    public function setCpfAttribute(?string $value): void
+    {
+        $this->attributes['cpf'] = $value === null || $value === ''
+            ? $value
+            : Crypt::encryptString($value);
     }
 
     public function vehicles()
